@@ -2,8 +2,6 @@ import React from 'react';
 import { Container, Typography, Paper, Box, Grid, Button } from '@mui/material';
 import { 
   FaDumbbell, 
-  FaHeart, 
-  FaLeaf, 
   FaUtensils, 
   FaCalculator, 
   FaChartLine,

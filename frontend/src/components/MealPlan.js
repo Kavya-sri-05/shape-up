@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from "react";
 import { Form } from "react-bootstrap";
 import { toast } from "react-toastify";
+import { useSelector } from 'react-redux';
 import {
   useCreateMealPlanMutation,
   useUpdateMealPlanMutation,
+  useGetAllMealPlansQuery,
 } from "../slices/usersApiSlice";
 import {
   Container,
@@ -15,7 +17,15 @@ import {
   Grid,
   Card,
   CardContent,
-  CircularProgress
+  CircularProgress,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  IconButton,
+  Chip,
 } from '@mui/material';
 import { 
   FaUtensils, 
@@ -23,7 +33,10 @@ import {
   FaCarrot, 
   FaAppleAlt,
   FaMoon,
-  FaCookie
+  FaCookie,
+  FaCalendarAlt,
+  FaTrash,
+  FaEdit
 } from 'react-icons/fa';
 
 const MealInput = ({ icon: Icon, label, value, onChange, placeholder }) => (
@@ -56,6 +69,7 @@ const MealInput = ({ icon: Icon, label, value, onChange, placeholder }) => (
 );
 
 const MealPlan = () => {
+  const { userInfo } = useSelector((state) => state.auth);
   const [currentDate, setCurrentDate] = useState(
     new Date().toISOString().split('T')[0]
   );
@@ -67,44 +81,32 @@ const MealPlan = () => {
   const [meal5, setMeal5] = useState("");
   const [snacks, setSnacks] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [savedMealPlans, setSavedMealPlans] = useState([]);
 
   const [createMealPlan, { isLoading: isCreating }] = useCreateMealPlanMutation();
   const [updateMealPlan, { isLoading: isUpdating }] = useUpdateMealPlanMutation();
+  const { data: mealPlansData, error: mealPlansError, isLoading: isFetchingMealPlans } = useGetAllMealPlansQuery();
 
   useEffect(() => {
-    const fetchMealPlan = async () => {
-      setIsLoading(true);
-      try {
-        const response = await fetch(`/api/user/meal-plan/${currentDate}`);
-        if (!response.ok) {
-          throw new Error('Failed to fetch meal plan');
-        }
-        const data = await response.json();
+    if (mealPlansData) {
+      setSavedMealPlans(mealPlansData.data || []);
+    }
+  }, [mealPlansData]);
 
-        if (data) {
-          setMeal1(data.meal1 || "");
-          setMeal2(data.meal2 || "");
-          setMeal3(data.meal3 || "");
-          setMeal4(data.meal4 || "");
-          setMeal5(data.meal5 || "");
-          setSnacks(data.snacks || "");
-        }
-      } catch (error) {
-        console.error("Fetch meal plan error:", error);
-        if (!error.message.includes('not found')) {
-          toast.error("Failed to load meal plan");
-        }
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchMealPlan();
-  }, [currentDate]);
+  useEffect(() => {
+    if (mealPlansError) {
+      toast.error(mealPlansError?.data?.message || "Failed to load saved meal plans");
+    }
+  }, [mealPlansError]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     
+    if (!userInfo) {
+      toast.error("Please log in to save meal plans");
+      return;
+    }
+
     try {
       const mealPlanData = {
         date: currentDate,
@@ -116,12 +118,17 @@ const MealPlan = () => {
         snacks,
       };
 
+      console.log('Submitting meal plan:', mealPlanData);
+
       try {
-        await updateMealPlan(mealPlanData).unwrap();
+        const updateResult = await updateMealPlan(mealPlanData).unwrap();
+        console.log('Update result:', updateResult);
         toast.success("Meal plan updated successfully!");
       } catch (updateError) {
+        console.log('Update error:', updateError);
         if (updateError.status === 404) {
-          await createMealPlan(mealPlanData).unwrap();
+          const createResult = await createMealPlan(mealPlanData).unwrap();
+          console.log('Create result:', createResult);
           toast.success("Meal plan created successfully!");
         } else {
           throw updateError;
@@ -131,6 +138,38 @@ const MealPlan = () => {
       console.error("Save meal plan error:", error);
       toast.error(error?.data?.message || "Failed to save meal plan");
     }
+  };
+
+  const handleDeleteMealPlan = async (date) => {
+    try {
+      const response = await fetch(`/api/user/meal-plan/${date}`, {
+        method: 'DELETE',
+      });
+      if (!response.ok) {
+        throw new Error('Failed to delete meal plan');
+      }
+      setSavedMealPlans(savedMealPlans.filter(plan => plan.date !== date));
+      toast.success("Meal plan deleted successfully!");
+    } catch (error) {
+      console.error("Delete meal plan error:", error);
+      toast.error("Failed to delete meal plan");
+    }
+  };
+
+  const handleEditMealPlan = (plan) => {
+    setCurrentDate(plan.date);
+    setMeal1(plan.meal1 || "");
+    setMeal2(plan.meal2 || "");
+    setMeal3(plan.meal3 || "");
+    setMeal4(plan.meal4 || "");
+    setMeal5(plan.meal5 || "");
+    setSnacks(plan.snacks || "");
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const getMealCount = (plan) => {
+    return [plan.meal1, plan.meal2, plan.meal3, plan.meal4, plan.meal5, plan.snacks]
+      .filter(meal => meal && meal.trim().length > 0).length;
   };
 
   if (isLoading || isCreating || isUpdating) {
@@ -256,6 +295,146 @@ const MealPlan = () => {
             </Button>
           </Box>
         </Form>
+      </Paper>
+
+      {/* Saved Meal Plans Section */}
+      <Paper 
+        elevation={3} 
+        sx={{ 
+          mt: 4, 
+          p: 4, 
+          borderRadius: 2,
+          background: 'linear-gradient(135deg, #EBF4F5 0%, #F7F9FC 100%)'
+        }}
+      >
+        <Typography 
+          variant="h4" 
+          component="h2" 
+          gutterBottom 
+          sx={{ 
+            color: '#2C3E50',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 2,
+            mb: 3
+          }}
+        >
+          <FaUtensils />
+          Saved Meal Plans
+        </Typography>
+
+        {savedMealPlans.length > 0 ? (
+          <TableContainer>
+            <Table>
+              <TableHead>
+                <TableRow>
+                  <TableCell>Date</TableCell>
+                  <TableCell>Meals Overview</TableCell>
+                  <TableCell>Total Meals</TableCell>
+                  <TableCell align="right">Actions</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {savedMealPlans.map((plan) => (
+                  <TableRow key={plan.date} hover>
+                    <TableCell>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <FaCalendarAlt />
+                        {new Date(plan.date).toLocaleDateString()}
+                      </Box>
+                    </TableCell>
+                    <TableCell>
+                      <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                        {plan.meal1 && (
+                          <Chip
+                            icon={<FaCoffee />}
+                            label={`Breakfast: ${plan.meal1}`}
+                            size="small"
+                            variant="outlined"
+                            color="primary"
+                            sx={{ maxWidth: 300 }}
+                          />
+                        )}
+                        {plan.meal2 && (
+                          <Chip
+                            icon={<FaCarrot />}
+                            label={`Morning Snack: ${plan.meal2}`}
+                            size="small"
+                            variant="outlined"
+                            color="primary"
+                            sx={{ maxWidth: 300 }}
+                          />
+                        )}
+                        {plan.meal3 && (
+                          <Chip
+                            icon={<FaUtensils />}
+                            label={`Lunch: ${plan.meal3}`}
+                            size="small"
+                            variant="outlined"
+                            color="primary"
+                            sx={{ maxWidth: 300 }}
+                          />
+                        )}
+                        {plan.meal4 && (
+                          <Chip
+                            icon={<FaAppleAlt />}
+                            label={`Afternoon Snack: ${plan.meal4}`}
+                            size="small"
+                            variant="outlined"
+                            color="primary"
+                            sx={{ maxWidth: 300 }}
+                          />
+                        )}
+                        {plan.meal5 && (
+                          <Chip
+                            icon={<FaMoon />}
+                            label={`Dinner: ${plan.meal5}`}
+                            size="small"
+                            variant="outlined"
+                            color="primary"
+                            sx={{ maxWidth: 300 }}
+                          />
+                        )}
+                        {plan.snacks && (
+                          <Chip
+                            icon={<FaCookie />}
+                            label={`Snacks: ${plan.snacks}`}
+                            size="small"
+                            variant="outlined"
+                            color="primary"
+                            sx={{ maxWidth: 300 }}
+                          />
+                        )}
+                      </Box>
+                    </TableCell>
+                    <TableCell>{getMealCount(plan)} meals</TableCell>
+                    <TableCell align="right">
+                      <IconButton
+                        color="primary"
+                        size="small"
+                        onClick={() => handleEditMealPlan(plan)}
+                        sx={{ mr: 1 }}
+                      >
+                        <FaEdit />
+                      </IconButton>
+                      <IconButton
+                        color="error"
+                        size="small"
+                        onClick={() => handleDeleteMealPlan(plan.date)}
+                      >
+                        <FaTrash />
+                      </IconButton>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        ) : (
+          <Typography color="text.secondary" align="center">
+            No meal plans saved yet. Create your first meal plan above!
+          </Typography>
+        )}
       </Paper>
     </Container>
   );

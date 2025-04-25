@@ -1,14 +1,15 @@
-import React, { useEffect, useState } from 'react';
-import { Container, Box, Typography, Paper, Button, TextField, Checkbox, FormControlLabel, Grid, IconButton, Dialog, DialogTitle, DialogContent, DialogActions } from "@mui/material";
+import React, { useState } from 'react';
+import { Container, Box, Typography, Paper, Button, TextField, Checkbox, FormControlLabel, Grid, IconButton, Dialog, DialogTitle, DialogContent, DialogActions, CircularProgress } from "@mui/material";
 import { FaPills } from 'react-icons/fa';
 import { Pill, Plus, X, Edit2, Trash2, Calendar, Clock, QrCode } from 'lucide-react';
-import { format, parseISO, differenceInDays } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import Footer from "../components/Footer";
 import MedicationQRScanner from '../components/MedicationQRScanner';
 import MedicationExpiryWarning from '../components/MedicationExpiryWarning';
+import { useGetAllMedicationsQuery, useCreateMedicationMutation, useUpdateMedicationMutation, useDeleteMedicationMutation } from '../slices/usersApiSlice';
+import { toast } from 'react-toastify';
 
 const MedicationsPage = () => {
-  const [medicationList, setMedicationList] = useState([]);
   const [showForm, setShowForm] = useState(false);
   const [showScanner, setShowScanner] = useState(false);
   const [editingMedication, setEditingMedication] = useState(null);
@@ -19,11 +20,17 @@ const MedicationsPage = () => {
     time: '',
     startDate: new Date().toISOString().substr(0, 10),
     endDate: '',
-    manufacturingDate: '',
-    expiryDate: '',
     notes: '',
     active: true
   });
+
+  // RTK Query hooks
+  const { data: medicationsData, isLoading, error } = useGetAllMedicationsQuery();
+  const [createMedication] = useCreateMedicationMutation();
+  const [updateMedication] = useUpdateMedicationMutation();
+  const [deleteMedication] = useDeleteMedicationMutation();
+
+  const medicationList = medicationsData?.data || [];
 
   // Handle form input change
   const handleChange = (e) => {
@@ -43,8 +50,6 @@ const MedicationsPage = () => {
       time: '',
       startDate: new Date().toISOString().substr(0, 10),
       endDate: '',
-      manufacturingDate: '',
-      expiryDate: '',
       notes: '',
       active: true
     });
@@ -66,8 +71,6 @@ const MedicationsPage = () => {
       time: medication.time,
       startDate: new Date(medication.startDate).toISOString().substr(0, 10),
       endDate: medication.endDate ? new Date(medication.endDate).toISOString().substr(0, 10) : '',
-      manufacturingDate: medication.manufacturingDate ? new Date(medication.manufacturingDate).toISOString().substr(0, 10) : '',
-      expiryDate: medication.expiryDate ? new Date(medication.expiryDate).toISOString().substr(0, 10) : '',
       notes: medication.notes || '',
       active: medication.active
     });
@@ -76,58 +79,55 @@ const MedicationsPage = () => {
   };
 
   // Handle form submission
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     
-    const medicationData = {
-      ...formData,
-      endDate: formData.endDate || null,
-      id: editingMedication ? editingMedication.id : Date.now()
-    };
-    
-    if (editingMedication) {
-      setMedicationList(prevList => 
-        prevList.map(med => med.id === editingMedication.id ? medicationData : med)
-      );
-    } else {
-      setMedicationList(prevList => [...prevList, medicationData]);
+    try {
+      if (editingMedication) {
+        await updateMedication({
+          id: editingMedication._id,
+          ...formData,
+          endDate: formData.endDate || null
+        }).unwrap();
+        toast.success('Medication updated successfully');
+      } else {
+        await createMedication({
+          ...formData,
+          endDate: formData.endDate || null
+        }).unwrap();
+        toast.success('Medication added successfully');
+      }
+      
+      setShowForm(false);
+      resetForm();
+    } catch (err) {
+      toast.error(err?.data?.message || 'Something went wrong');
     }
-    
-    setShowForm(false);
-    resetForm();
   };
 
   // Handle medication deletion
-  const handleDelete = (id) => {
+  const handleDelete = async (id) => {
     if (window.confirm('Are you sure you want to delete this medication?')) {
-      setMedicationList(prevList => prevList.filter(med => med.id !== id));
+      try {
+        await deleteMedication(id).unwrap();
+        toast.success('Medication deleted successfully');
+      } catch (err) {
+        toast.error(err?.data?.message || 'Failed to delete medication');
+      }
     }
   };
 
   // Handle QR scan complete
   const handleScanComplete = (scanData) => {
-    // Format dates to YYYY-MM-DD format for form inputs
-    const formatDateForInput = (dateString) => {
-      if (!dateString) return '';
-      try {
-        return new Date(dateString).toISOString().substr(0, 10);
-      } catch (e) {
-        return '';
-      }
-    };
-
-    // Merge scanned data with default values for missing fields
     setFormData({
       name: scanData.name || '',
       dosage: scanData.dosage || '',
       frequency: scanData.frequency || '',
       time: scanData.time || '',
-      startDate: formatDateForInput(scanData.startDate) || new Date().toISOString().substr(0, 10),
-      endDate: formatDateForInput(scanData.endDate) || '',
-      manufacturingDate: formatDateForInput(scanData.manufacturingDate) || '',
-      expiryDate: formatDateForInput(scanData.expiryDate) || '',
+      startDate: new Date().toISOString().substr(0, 10),
+      endDate: '',
       notes: scanData.notes || 'Imported from QR code scan',
-      active: true // Default to active for new medications
+      active: true
     });
     
     setShowScanner(false);
@@ -141,6 +141,23 @@ const MedicationsPage = () => {
       inactive: medicationList.filter(med => !med.active)
     };
   };
+
+  if (isLoading) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '80vh' }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  if (error) {
+    toast.error('Failed to load medications');
+    return (
+      <Box sx={{ p: 3, textAlign: 'center' }}>
+        <Typography color="error">Error loading medications. Please try again later.</Typography>
+      </Box>
+    );
+  }
 
   const { active: activeMedications, inactive: inactiveMedications } = groupedMedications();
 
@@ -513,32 +530,6 @@ const MedicationsPage = () => {
                         name="endDate"
                         type="date"
                         value={formData.endDate}
-                        onChange={handleChange}
-                        InputLabelProps={{ shrink: true }}
-                      />
-                    </Grid>
-
-                    {/* Manufacturing and Expiry Dates */}
-                    <Grid item xs={6}>
-                      <TextField
-                        fullWidth
-                        label="Manufacturing Date"
-                        name="manufacturingDate"
-                        type="date"
-                        required
-                        value={formData.manufacturingDate}
-                        onChange={handleChange}
-                        InputLabelProps={{ shrink: true }}
-                      />
-                    </Grid>
-                    <Grid item xs={6}>
-                      <TextField
-                        fullWidth
-                        label="Expiry Date"
-                        name="expiryDate"
-                        type="date"
-                        required
-                        value={formData.expiryDate}
                         onChange={handleChange}
                         InputLabelProps={{ shrink: true }}
                       />

@@ -6,6 +6,7 @@ import { logout } from "../slices/authSlice";
 import { Navbar, Nav, Container, NavDropdown, Button } from "react-bootstrap";
 import { FaDumbbell, FaUser } from 'react-icons/fa';
 import { GiMuscleUp } from 'react-icons/gi';
+import { MdDashboard } from 'react-icons/md';
 import styled from '@emotion/styled';
 
 const StyledNavbar = styled(Navbar)`
@@ -122,6 +123,9 @@ const Header = () => {
           <Nav className="ms-auto">
             {userInfo ? (
               <>
+                <NavLink to="/pages/dashboard" className="nav-link">
+                  <MdDashboard className="me-1" /> Dashboard
+                </NavLink>
                 <NavLink to="/pages/workouts" className="nav-link">
                   Workouts
                 </NavLink>

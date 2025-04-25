@@ -2,6 +2,8 @@ import React from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import { useSelector } from "react-redux";
+import NotificationSystem from './components/NotificationSystem';
 
 // Components
 import Header from "./components/Header";
@@ -18,9 +20,9 @@ import BMRCalculator from "./pages/BMRCalculator";
 import About from "./pages/About";
 import MealPlanPage from "./pages/MealPlan";
 import NotFound from "./pages/NotFound";
-import { useSelector } from "react-redux";
 import MedicationsPage from "./pages/MedicationsPage";
 import UpdateDietProfile from "./components/UpdateDietProfile";
+import Dashboard from "./pages/Dashboard";
 
 // Styles
 import { Box } from "@mui/material";
@@ -67,7 +69,7 @@ const App = () => {
             {/* Redirect root to login if not authenticated, home if authenticated */}
             <Route 
               path="/" 
-              element={userInfo ? <Navigate to="/pages/home" replace /> : <Navigate to="/pages/login" replace />} 
+              element={userInfo ? <Navigate to="/pages/dashboard" replace /> : <Navigate to="/pages/login" replace />} 
             />
             
             {/* Public Routes */}
@@ -81,6 +83,7 @@ const App = () => {
 
             {/* Private Routes */}
             <Route element={<PrivateRoute />}>
+              <Route path="/pages/dashboard" element={<Dashboard />} />
               <Route path="/pages/home" element={<Home />} />
               <Route path="/pages/workouts" element={<Workouts />} />
               <Route path="/pages/nutrition-checker" element={<NutritionChecker />} />
@@ -95,6 +98,7 @@ const App = () => {
           </Routes>
         </Box>
         <ToastContainer />
+        {userInfo && <NotificationSystem />}
       </Box>
     </ThemeProvider>
   );

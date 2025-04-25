@@ -8,18 +8,31 @@ import User from "../models/userModel.js";
 const authUser = asyncHandler(async (req, res) => {
   const { email, password } = req.body;
 
-  const user = await User.findOne({ email });
+  if (!email || !password) {
+    res.status(400);
+    throw new Error('Please provide both email and password');
+  }
 
-  if (user && (await user.matchPassword(password))) {
-    generateToken(res, user._id);
-    res.status(201).json({
-      _id: user._id,
-      name: user.name,
-      email: user.email,
-    });
-  } else {
+  try {
+    const user = await User.findOne({ email: email.toLowerCase() });
+
+    if (user && (await user.matchPassword(password))) {
+      generateToken(res, user._id);
+      res.status(200).json({
+        success: true,
+        data: {
+          _id: user._id,
+          name: user.name,
+          email: user.email,
+        }
+      });
+    } else {
+      res.status(401);
+      throw new Error("Invalid email or password");
+    }
+  } catch (error) {
     res.status(401);
-    throw new Error("Invalid user credentials");
+    throw new Error(error.message || "Authentication failed");
   }
 });
 
@@ -29,45 +42,62 @@ const authUser = asyncHandler(async (req, res) => {
 const registerUser = asyncHandler(async (req, res) => {
   const { name, email, password } = req.body;
 
-  // Validate input
+  // Basic validation
   if (!name || !email || !password) {
     res.status(400);
-    throw new Error('Please provide all required fields');
-  }
-
-  // Check if user exists
-  const userExists = await User.findOne({ email });
-
-  if (userExists) {
-    res.status(400);
-    throw new Error('User already exists');
+    throw new Error('Please provide all required fields: name, email, and password');
   }
 
   try {
+    // Check for existing user with case-insensitive email
+    const userExists = await User.findOne({ 
+      email: { $regex: new RegExp('^' + email + '$', 'i') } 
+    });
+
+    if (userExists) {
+      res.status(400);
+      throw new Error('An account with this email already exists');
+    }
+
+    // Create new user
     const user = await User.create({
-      name,
-      email,
-      password,
+      name: name.trim(),
+      email: email.toLowerCase(),
+      password
     });
 
     if (user) {
       generateToken(res, user._id);
       res.status(201).json({
         success: true,
+        message: 'Registration successful',
         data: {
           _id: user._id,
           name: user.name,
-          email: user.email,
+          email: user.email
         }
       });
     }
   } catch (error) {
-    res.status(400);
-    throw new Error(error.message || 'Invalid user data');
+    // Handle mongoose duplicate key error
+    if (error.code === 11000) {
+      res.status(400);
+      throw new Error('An account with this email already exists');
+    }
+
+    // Handle validation errors
+    if (error.name === 'ValidationError') {
+      const messages = Object.values(error.errors).map(err => err.message);
+      res.status(400);
+      throw new Error(messages.join('. '));
+    }
+
+    res.status(500);
+    throw new Error('Server error during registration');
   }
 });
 
-// @desc        Logout a new user
+// @desc        Logout user
 // route        POST /api/users/logout
 // @access      Public
 const logoutUser = asyncHandler(async (req, res) => {
@@ -76,46 +106,78 @@ const logoutUser = asyncHandler(async (req, res) => {
     expires: new Date(0),
   });
 
-  res.status(200).json({ message: "user logged out" });
+  res.status(200).json({ 
+    success: true,
+    message: "Successfully logged out" 
+  });
 });
 
 // @desc        Get user profile
 // route        GET /api/users/profile
 // @access      Private
 const getUserProfile = asyncHandler(async (req, res) => {
-  const user = {
-    _id: req.user._id,
-    name: req.user.name,
-    email: req.user.email,
-  };
-
-  res.status(200).json(user);
+  try {
+    const user = await User.findById(req.user._id).select('-password');
+    
+    if (user) {
+      res.json({
+        success: true,
+        data: user
+      });
+    } else {
+      res.status(404);
+      throw new Error('User not found');
+    }
+  } catch (error) {
+    res.status(500);
+    throw new Error('Error retrieving user profile');
+  }
 });
 
 // @desc        Update user profile
 // @route       PUT /api/users/profile
 // @access      Private
 const updateUserProfile = asyncHandler(async (req, res) => {
-  const user = await User.findById(req.user._id);
+  try {
+    const user = await User.findById(req.user._id);
 
-  if (user) {
-    user.name = req.body.name || user.name;
-    user.email = req.body.email || user.email;
-
-    if (req.body.password) {
-      user.password = req.body.password;
+    if (!user) {
+      res.status(404);
+      throw new Error('User not found');
     }
+
+    // Only update fields that were actually passed
+    if (req.body.name) user.name = req.body.name.trim();
+    if (req.body.email) user.email = req.body.email.toLowerCase();
+    if (req.body.password) user.password = req.body.password;
 
     const updatedUser = await user.save();
 
     res.json({
-      _id: updatedUser._id,
-      name: updatedUser.name,
-      email: updatedUser.email,
+      success: true,
+      message: 'Profile updated successfully',
+      data: {
+        _id: updatedUser._id,
+        name: updatedUser.name,
+        email: updatedUser.email
+      }
     });
-  } else {
-    res.status(404);
-    throw new Error('User Not Found');
+  } catch (error) {
+    // Handle duplicate email error
+    if (error.code === 11000) {
+      res.status(400);
+      throw new Error('Email address is already in use');
+    }
+
+    // Handle validation errors
+    if (error.name === 'ValidationError') {
+      const messages = Object.values(error.errors).map(err => err.message);
+      res.status(400);
+      throw new Error(messages.join('. '));
+    }
+
+    res.status(500);
+    throw new Error('Error updating profile');
   }
 });
 
