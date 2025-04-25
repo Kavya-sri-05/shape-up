@@ -1,81 +1,97 @@
-import React from "react";
-import { Container, Row, Col, Card } from "react-bootstrap";
-import { Link } from "react-router-dom";
-import Footer from "../components/Footer";
+import React from 'react';
+import { Container, Typography, Paper, Box, Grid } from '@mui/material';
+import { 
+  FaDumbbell, 
+  FaUtensils, 
+  FaCalculator, 
+  FaChartLine,
+  FaDatabase,
+  FaUserCog
+} from 'react-icons/fa';
 
-const FeatureCard = ({ title, description, link }) => {
-  return (
-    <Card className="mb-4 text-center">
-      <Card.Body>
-        <Card.Title className="mt-3">{title}</Card.Title>
-        <Card.Text>{description}</Card.Text>
-        <Link to={link} className="btn btn-primary">
-          Learn More
-        </Link>
-      </Card.Body>
-    </Card>
-  );
-};
+const FeatureCard = ({ icon: Icon, title, description }) => (
+  <Paper elevation={2} sx={{ 
+    p: 3, 
+    borderRadius: 2, 
+    height: '100%',
+    transition: 'transform 0.2s',
+    '&:hover': {
+      transform: 'translateY(-5px)'
+    }
+  }}>
+    <Box sx={{ textAlign: 'center', mb: 2 }}>
+      <Icon size={40} style={{ color: '#4A90E2' }} />
+    </Box>
+    <Typography variant="h6" gutterBottom align="center">
+      {title}
+    </Typography>
+    <Typography variant="body2" align="center" color="text.secondary">
+      {description}
+    </Typography>
+  </Paper>
+);
 
-const FeaturesPage = () => {
+const Features = () => {
   const features = [
     {
-      title: "Workout Database",
-      description:
-        "Our workout database is a comprehensive resource for anyone looking to improve their fitness. Find the perfect routine to target your specific goals.",
-      link: "/pages/workouts",
+      icon: FaDumbbell,
+      title: "Workout Planner",
+      description: "Create and customize workout plans with our extensive exercise database. Get detailed instructions and video demonstrations."
     },
     {
+      icon: FaUtensils,
       title: "Nutrition Checker",
-      description:
-        "With Nutrition Checker, you can quickly and easily see the nutritional value of any food, including calories, fat, protein, carbohydrates.",
-      link: "/pages/nutrition-checker",
+      description: "Track your daily nutrition intake, analyze meal components, and get recommendations for a balanced diet."
     },
     {
+      icon: FaCalculator,
       title: "BMR Calculator",
-      description:
-        "Calculate your Basal Metabolic Rate (BMR) to determine your daily calorie needs. Get insights into your metabolism.",
-      link: "/pages/bmr-calculator",
+      description: "Calculate your Basal Metabolic Rate to understand your daily caloric needs and optimize your fitness goals."
     },
     {
-      title: "Create Account",
-      description:
-        "Create a personalized account to access additional features, save your progress, and customize your experience.",
-      link: "/pages/register",
+      icon: FaChartLine,
+      title: "Progress Tracking",
+      description: "Monitor your fitness journey with detailed progress charts and achievement milestones."
     },
     {
-      title: "Meal Planner",
-      description:
-        "The Meal Planner is a feature that helps you plan your meals for the Day. The Meal Planner is a great way to save time and money, and to eat healthier!",
-      link: "/pages/profile/meal-plan",
+      icon: FaDatabase,
+      title: "Exercise Database",
+      description: "Access our comprehensive database of exercises with detailed instructions and muscle group targeting."
     },
     {
-      title: "Water Intake Log",
-      description:
-        "Feature that helps you track how much water you drink each day. You can enter the amount of water you drink each time you take a drink.",
-      link: "/pages/profile/meal-plan",
-    },
+      icon: FaUserCog,
+      title: "Personalization",
+      description: "Get personalized recommendations based on your fitness level, goals, and preferences."
+    }
   ];
 
   return (
-    <>
-      <Container className="mt-4">
-        <h2 className="text-center mb-4">App Features</h2>
-        <Row className="justify-content-center">
+    <Container maxWidth="lg">
+      <Box sx={{ py: 4 }}>
+        <Typography 
+          variant="h2" 
+          component="h1" 
+          gutterBottom 
+          align="center" 
+          sx={{ 
+            fontWeight: 'bold', 
+            color: '#4A90E2',
+            mb: 4 
+          }}
+        >
+          Our Features
+        </Typography>
+
+        <Grid container spacing={3}>
           {features.map((feature, index) => (
-            <Col key={index} xs={12} md={6} lg={4}>
-              <FeatureCard
-                title={feature.title}
-                description={feature.description}
-                link={feature.link}
-              />
-            </Col>
+            <Grid item xs={12} sm={6} md={4} key={index}>
+              <FeatureCard {...feature} />
+            </Grid>
           ))}
-        </Row>
-      </Container>
-      <Footer />
-    </>
+        </Grid>
+      </Box>
+    </Container>
   );
 };
 
-export default FeaturesPage;
+export default Features;

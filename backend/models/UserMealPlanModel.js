@@ -9,27 +9,47 @@ const userMealPlanSchema = new mongoose.Schema({
   date: {
     type: Date,
     required: true,
+    validate: {
+      validator: function(value) {
+        return value <= new Date(new Date().setHours(23, 59, 59, 999));
+      },
+      message: "Date cannot be in the future"
+    }
   },
   meal1: {
     type: String,
+    maxlength: [500, "Meal description cannot exceed 500 characters"],
+    trim: true
   },
   meal2: {
     type: String,
+    maxlength: [500, "Meal description cannot exceed 500 characters"],
+    trim: true
   },
   meal3: {
     type: String,
+    maxlength: [500, "Meal description cannot exceed 500 characters"],
+    trim: true
   },
   meal4: {
     type: String,
+    maxlength: [500, "Meal description cannot exceed 500 characters"],
+    trim: true
   },
   meal5: {
     type: String,
+    maxlength: [500, "Meal description cannot exceed 500 characters"],
+    trim: true
   },
   snacks: {
     type: String,
+    maxlength: [500, "Snacks description cannot exceed 500 characters"],
+    trim: true
   },
 });
 
+// Add index for efficient queries
+userMealPlanSchema.index({ userId: 1, date: 1 }, { unique: true });
 
 const MealPlan = mongoose.model("MealPlan", userMealPlanSchema);
 

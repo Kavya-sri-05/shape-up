@@ -1,19 +1,101 @@
 import React from "react";
-import { useState } from "react";
-import { Link, useLocation } from "react-router-dom";
-import { Container, Navbar, Nav, NavDropdown } from "react-bootstrap";
+import { Link, useNavigate } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
-import { useNavigate } from "react-router-dom";
 import { useLogoutMutation } from "../slices/usersApiSlice";
 import { logout } from "../slices/authSlice";
-import { toast } from "react-toastify";
-import MenuIcon from "@mui/icons-material/Menu";
-import CloseIcon from "@mui/icons-material/Close";
-import Logo from "../assets/images/Logo.png";
+import { Navbar, Nav, Container, NavDropdown, Button } from "react-bootstrap";
+import { FaDumbbell, FaUser } from 'react-icons/fa';
+import { GiMuscleUp } from 'react-icons/gi';
+import styled from '@emotion/styled';
+
+const StyledNavbar = styled(Navbar)`
+  background: linear-gradient(135deg, #4A90E2 0%, #5C6BC0 100%);
+  padding: 1rem 0;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+`;
+
+const BrandLink = styled(Link)`
+  color: white !important;
+  font-size: 1.5rem;
+  font-weight: 700;
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+
+  &:hover {
+    color: #E3F2FD !important;
+  }
+`;
+
+const NavLink = styled(Link)`
+  color: rgba(255, 255, 255, 0.9) !important;
+  font-weight: 500;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+
+  &:hover {
+    color: white !important;
+    background: rgba(255, 255, 255, 0.1);
+  }
+`;
+
+const UserDropdown = styled(NavDropdown)`
+  .dropdown-toggle {
+    color: white !important;
+    font-weight: 500;
+  }
+
+  .dropdown-menu {
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  }
+
+  .dropdown-item {
+    padding: 0.5rem 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+
+    &:hover {
+      background-color: #E3F2FD;
+    }
+  }
+`;
+
+const LoginButton = styled(Button)`
+  background-color: transparent;
+  border: 2px solid white;
+  font-weight: 500;
+  padding: 0.5rem 1.5rem;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background-color: white;
+    color: #4A90E2;
+    border-color: white;
+  }
+`;
+
+const RegisterButton = styled(Button)`
+  background-color: white;
+  border: 2px solid white;
+  color: #4A90E2;
+  font-weight: 500;
+  padding: 0.5rem 1.5rem;
+  margin-left: 1rem;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background-color: #E3F2FD;
+    color: #4A90E2;
+    border-color: #E3F2FD;
+  }
+`;
 
 const Header = () => {
   const { userInfo } = useSelector((state) => state.auth);
-
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
@@ -23,87 +105,70 @@ const Header = () => {
     try {
       await logoutApiCall().unwrap();
       dispatch(logout());
-      navigate("/");
-      toast.success("Logout Successfully!");
+      navigate("/pages/login");
     } catch (err) {
       console.error(err);
     }
   };
 
-  const location = useLocation();
-  const [activeLink, setActiveLink] = useState(location.pathname);
-  const [isMobileMenuOpen, setMobileMenuOpen] = useState(false);
-
-  const handleLinkClick = (url) => {
-    setActiveLink(url);
-    if (isMobileMenuOpen) {
-      setMobileMenuOpen(false);
-    }
-  };
-
-  const handleMobileMenuToggle = () => {
-    setMobileMenuOpen(!isMobileMenuOpen);
-  };
-
-  const NavLink = ({ to, children }) => {
-    const isActive = location.pathname === to;
-    return (
-      <Nav.Link as={Link} to={to} className={isActive ? "active" : ""}>
-        {children}
-      </Nav.Link>
-    );
-  };
-
   return (
-    <Navbar bg="white" expand="md">
+    <StyledNavbar expand="lg" variant="dark">
       <Container>
-        <Navbar.Brand as={Link} to="/">
-          <img
-            src={Logo}
-            alt="logo"
-            style={{
-              width: "100px",
-            }}
-          />
-        </Navbar.Brand>
-        <Navbar.Toggle
-          aria-controls="responsive-navbar-nav"
-          onClick={handleMobileMenuToggle}
-        >
-          {isMobileMenuOpen ? <CloseIcon /> : <MenuIcon />}
-        </Navbar.Toggle>
-        <Navbar.Collapse id="responsive-navbar-nav">
-          <Nav className="me-auto">
-            <NavLink to="/">Home</NavLink>
-            <NavLink to="/pages/features">Features</NavLink>
-            <NavLink to="/pages/workouts">Workout Database</NavLink>
-            <NavLink to="/pages/nutrition-checker">Nutrition Checker</NavLink>
-            <NavLink to="/pages/bmr-calculator">BMR</NavLink>
-          </Nav>
-          <Nav>
+        <BrandLink to={userInfo ? "/pages/home" : "/"}>
+          <FaDumbbell /> Health & Fitness
+        </BrandLink>
+        <Navbar.Toggle aria-controls="basic-navbar-nav" />
+        <Navbar.Collapse id="basic-navbar-nav">
+          <Nav className="ms-auto">
             {userInfo ? (
-              <NavDropdown title={userInfo.name} id="username">
-                <NavDropdown.Item as={Link} to="/pages/profile">
-                  Profile
-                </NavDropdown.Item>
-                <NavDropdown.Item onClick={logoutHandler}>
-                  Logout
-                </NavDropdown.Item>
-              </NavDropdown>
+              <>
+                <NavLink to="/pages/workouts" className="nav-link">
+                  Workouts
+                </NavLink>
+                <NavLink to="/pages/nutrition-checker" className="nav-link">
+                  Nutrition
+                </NavLink>
+                <NavLink to="/pages/meal-plan" className="nav-link">
+                  Meal Plan
+                </NavLink>
+                <NavLink to="/pages/diet-profile" className="nav-link">
+                  <GiMuscleUp className="me-1" /> Diet Profile
+                </NavLink>
+                <NavLink to="/pages/bmr-calculator" className="nav-link">
+                  BMR Calculator
+                </NavLink>
+                <NavLink to="/pages/medications" className="nav-link">
+                  Medications
+                </NavLink>
+                <NavLink to="/pages/about" className="nav-link">
+                  About
+                </NavLink>
+                <UserDropdown 
+                  title={<><FaUser className="me-1" /> {userInfo.name}</>} 
+                  id="username"
+                >
+                  <NavDropdown.Item onClick={logoutHandler}>
+                    Logout
+                  </NavDropdown.Item>
+                </UserDropdown>
+              </>
             ) : (
               <>
-                <Nav.Link as={Link} to="/pages/register">
+                <NavLink to="/pages/about" className="nav-link">
+                  About
+                </NavLink>
+                <LoginButton as={Link} to="/pages/login">
+                  Sign In
+                </LoginButton>
+                <RegisterButton as={Link} to="/pages/register">
                   Register
-                </Nav.Link>
-                <Nav.Link as={Link} to="/pages/login">
-                  Login
-                </Nav.Link>
+                </RegisterButton>
               </>
             )}
           </Nav>
         </Navbar.Collapse>
       </Container>
-    </Navbar>
+    </StyledNavbar>
   );
 };
 

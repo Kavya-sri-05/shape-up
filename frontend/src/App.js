@@ -1,58 +1,102 @@
 import React from "react";
-import { Route, Routes } from "react-router-dom";
-import { Box } from "@mui/material";
-import { Container } from "react-bootstrap";
+import { Routes, Route, Navigate } from "react-router-dom";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
-import "./App.css";
+// Components
+import Header from "./components/Header";
 import PrivateRoute from "./components/PrivateRoute";
 import PublicRoute from "./components/PublicRoute";
+
+// Pages
 import Home from "./pages/Home";
-import Header from "./components/Header";
-import Features from "./pages/Features";
-import Workouts from "./pages/Workouts";
-import BMRCalculator from "./pages/BMRCalculator";
-import NutritionChecker from "./pages/NutritionChecker";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
-import Profile from "./pages/Profile";
+import Workouts from "./pages/Workouts";
+import NutritionChecker from "./pages/NutritionChecker";
+import BMRCalculator from "./pages/BMRCalculator";
 import About from "./pages/About";
+import MealPlanPage from "./pages/MealPlan";
 import NotFound from "./pages/NotFound";
+import { useSelector } from "react-redux";
+import MedicationsPage from "./pages/MedicationsPage";
+import UpdateDietProfile from "./components/UpdateDietProfile";
+
+// Styles
+import { Box } from "@mui/material";
+import { ThemeProvider, createTheme } from '@mui/material/styles';
+
+const theme = createTheme({
+  palette: {
+    primary: {
+      main: '#4A90E2',
+    },
+    secondary: {
+      main: '#5C6BC0',
+    },
+  },
+  typography: {
+    fontFamily: '"Inter", "Helvetica", "Arial", sans-serif',
+    button: {
+      textTransform: 'none',
+    },
+  },
+  components: {
+    MuiButton: {
+      styleOverrides: {
+        root: {
+          borderRadius: '8px',
+        },
+      },
+    },
+  },
+});
 
 const App = () => {
+  const { userInfo } = useSelector((state) => state.auth);
+
   return (
-    <Container>
-      <ToastContainer />
-      <Box width="400px" sx={{ width: { x1: "1488px" } }} m="auto">
+    <ThemeProvider theme={theme}>
+      <Box sx={{ 
+        minHeight: '100vh',
+        backgroundColor: '#F5F7FA'
+      }}>
         <Header />
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/pages/features" element={<Features />} />
-          <Route path="/pages/workouts" element={<Workouts />} />
-          <Route
-            path="/pages/nutrition-checker"
-            element={<NutritionChecker />}
-          />
-          <Route path="/pages/bmr-calculator" element={<BMRCalculator />} />
-          <Route path="/pages/about" element={<About />} />
+        <Box sx={{ maxWidth: 1200, margin: '0 auto', padding: '20px' }}>
+          <Routes>
+            {/* Redirect root to login if not authenticated, home if authenticated */}
+            <Route 
+              path="/" 
+              element={userInfo ? <Navigate to="/pages/home" replace /> : <Navigate to="/pages/login" replace />} 
+            />
+            
+            {/* Public Routes */}
+            <Route path="/pages/about" element={<About />} />
 
-          {/* Public Route */}
-          <Route path="" element={<PublicRoute />}>
-            <Route path="/pages/register" element={<Register />} />
-            <Route path="/pages/login" element={<Login />} />
-          </Route>
+            {/* Authentication Routes */}
+            <Route element={<PublicRoute />}>
+              <Route path="/pages/login" element={<Login />} />
+              <Route path="/pages/register" element={<Register />} />
+            </Route>
 
-          {/* Private Route */}
-          <Route path="" element={<PrivateRoute />}>
-            <Route path="/pages/profile/*" element={<Profile />} />
-          </Route>
+            {/* Private Routes */}
+            <Route element={<PrivateRoute />}>
+              <Route path="/pages/home" element={<Home />} />
+              <Route path="/pages/workouts" element={<Workouts />} />
+              <Route path="/pages/nutrition-checker" element={<NutritionChecker />} />
+              <Route path="/pages/bmr-calculator" element={<BMRCalculator />} />
+              <Route path="/pages/meal-plan" element={<MealPlanPage />} />
+              <Route path="/pages/medications" element={<MedicationsPage />} />
+              <Route path="/pages/diet-profile" element={<UpdateDietProfile />} />
+            </Route>
 
-          {/* 404 Page */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
+            {/* 404 Route */}
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </Box>
+        <ToastContainer />
       </Box>
-    </Container>
+    </ThemeProvider>
   );
 };
 
