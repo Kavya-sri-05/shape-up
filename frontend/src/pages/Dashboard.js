@@ -29,25 +29,29 @@ import { Link } from 'react-router-dom';
 import { FaUtensils, FaWeight, FaPills, FaCalendarAlt, FaClock, FaCoffee, FaCarrot, FaAppleAlt, FaMoon, FaCookie } from 'react-icons/fa';
 import { GiMuscleUp } from 'react-icons/gi';
 import { MdEdit, MdExpandMore, MdDelete } from 'react-icons/md';
-import { useGetAllMealPlansQuery, useGetAllMedicationsQuery } from '../slices/usersApiSlice';
+import { useGetAllMealPlansQuery, useGetAllMedicationsQuery, useDeleteMealPlanMutation, useDeleteMedicationMutation } from '../slices/usersApiSlice';
 import { toast } from 'react-toastify';
 
 const Dashboard = () => {
   const [dietProfile, setDietProfile] = useState(null);
   const [expandedAccordion, setExpandedAccordion] = useState('mealPlans');
   
-  // Fetch data using RTK Query
   const { 
     data: mealPlansData, 
     isLoading: isMealPlansLoading, 
-    error: mealPlansError 
+    error: mealPlansError,
+    refetch: refetchMealPlans
   } = useGetAllMealPlansQuery();
 
   const {
     data: medicationsData,
     isLoading: isMedicationsLoading,
-    error: medicationsError
+    error: medicationsError,
+    refetch: refetchMedications
   } = useGetAllMedicationsQuery();
+
+  const [deleteMealPlan] = useDeleteMealPlanMutation();
+  const [deleteMedication] = useDeleteMedicationMutation();
 
   const mealPlans = mealPlansData?.data || [];
   const medications = medicationsData?.data || [];
@@ -104,6 +108,29 @@ const Dashboard = () => {
         value && 
         value.trim().length > 0
       ).length;
+  };
+
+  const handleDeleteMealPlan = async (date) => {
+    try {
+      const formattedDate = new Date(date).toISOString().split('T')[0];
+      await deleteMealPlan(formattedDate);
+      await refetchMealPlans();
+      toast.success('Meal plan deleted successfully');
+    } catch (err) {
+      console.error('Delete meal plan error:', err);
+      toast.error(err?.data?.message || 'Failed to delete meal plan');
+    }
+  };
+
+  const handleDeleteMedication = async (id) => {
+    try {
+      await deleteMedication(id);
+      await refetchMedications();
+      toast.success('Medication deleted successfully');
+    } catch (err) {
+      console.error('Delete medication error:', err);
+      toast.error(err?.data?.message || 'Failed to delete medication');
+    }
   };
 
   if (isMealPlansLoading || isMedicationsLoading) {
@@ -286,6 +313,14 @@ const Dashboard = () => {
                           >
                             Edit
                           </Button>
+                          <IconButton
+                            onClick={() => handleDeleteMealPlan(plan.date)}
+                            color="error"
+                            size="small"
+                            title="Delete meal plan"
+                          >
+                            <MdDelete />
+                          </IconButton>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -351,6 +386,14 @@ const Dashboard = () => {
                           >
                             Edit
                           </Button>
+                          <IconButton
+                            onClick={() => handleDeleteMedication(medication._id)}
+                            color="error"
+                            size="small"
+                            title="Delete medication"
+                          >
+                            <MdDelete />
+                          </IconButton>
                         </TableCell>
                       </TableRow>
                     ))}

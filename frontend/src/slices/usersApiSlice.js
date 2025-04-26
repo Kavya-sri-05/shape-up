@@ -74,6 +74,17 @@ export const userApiSlice = apiSlice.injectEndpoints({
       }),
       invalidatesTags: ['MealPlan'],
     }),
+    deleteMealPlan: builder.mutation({
+      query: (date) => ({
+        url: `${USER_MEAL_PLAN_URL}/${date}`,
+        method: "DELETE",
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      }),
+      invalidatesTags: ['MealPlan'],
+    }),
 
     // User Water intake endpoints
     createWaterIntake: builder.mutation({
@@ -147,6 +158,7 @@ export const {
   useGetAllMealPlansQuery,
   useCreateMealPlanMutation,
   useUpdateMealPlanMutation,
+  useDeleteMealPlanMutation,
   useCreateWaterIntakeMutation,
   useUpdateWaterIntakeMutation,
   useGetAllMedicationsQuery,

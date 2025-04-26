@@ -4,7 +4,8 @@ import {
   getAllUserMealPlans,
   createUserMealPlan,
   getUserMealPlan,
-  updateUserMealPlan
+  updateUserMealPlan,
+  deleteUserMealPlan
 } from "../controllers/UserMealPlanController.js";
 
 const router = express.Router();
@@ -23,5 +24,8 @@ router.get("/meal-plan/:date", getUserMealPlan);
 
 // PUT /api/user/meal-plan - Update a meal plan
 router.put("/meal-plan", updateUserMealPlan);
+
+// DELETE /api/user/meal-plan/:date - Delete a meal plan
+router.delete("/meal-plan/:date", deleteUserMealPlan);
 
 export default router;

@@ -110,3 +110,29 @@ export const getAllUserMealPlans = asyncHandler(async (req, res) => {
     data: mealPlans
   });
 });
+
+/**
+ * Deletes a user meal plan
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @returns {Promise<void>}
+ */
+export const deleteUserMealPlan = asyncHandler(async (req, res) => {
+  const userId = req.user._id;
+  const { date } = req.params;
+
+  const mealPlan = await MealPlan.findOneAndDelete({ 
+    userId, 
+    date: new Date(date)
+  });
+
+  if (!mealPlan) {
+    res.status(404);
+    throw new Error('Meal plan not found');
+  }
+
+  res.json({
+    success: true,
+    data: {}
+  });
+});

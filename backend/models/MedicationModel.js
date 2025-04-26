@@ -34,6 +34,13 @@ const medicationSchema = mongoose.Schema({
   endDate: {
     type: Date
   },
+  expiryDate: {
+    type: Date
+  },
+  manufacturer: {
+    type: String,
+    trim: true
+  },
   notes: {
     type: String,
     trim: true

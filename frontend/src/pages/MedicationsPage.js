@@ -20,6 +20,8 @@ const MedicationsPage = () => {
     time: '',
     startDate: new Date().toISOString().substr(0, 10),
     endDate: '',
+    expiryDate: '',
+    manufacturer: '',
     notes: '',
     active: true
   });
@@ -50,6 +52,8 @@ const MedicationsPage = () => {
       time: '',
       startDate: new Date().toISOString().substr(0, 10),
       endDate: '',
+      expiryDate: '',
+      manufacturer: '',
       notes: '',
       active: true
     });
@@ -71,6 +75,8 @@ const MedicationsPage = () => {
       time: medication.time,
       startDate: new Date(medication.startDate).toISOString().substr(0, 10),
       endDate: medication.endDate ? new Date(medication.endDate).toISOString().substr(0, 10) : '',
+      expiryDate: medication.expiryDate ? new Date(medication.expiryDate).toISOString().substr(0, 10) : '',
+      manufacturer: medication.manufacturer || '',
       notes: medication.notes || '',
       active: medication.active
     });
@@ -107,11 +113,18 @@ const MedicationsPage = () => {
 
   // Handle medication deletion
   const handleDelete = async (id) => {
+    if (!id) {
+      toast.error('Invalid medication ID');
+      return;
+    }
+
     if (window.confirm('Are you sure you want to delete this medication?')) {
       try {
+        console.log('Deleting medication with ID:', id);
         await deleteMedication(id).unwrap();
         toast.success('Medication deleted successfully');
       } catch (err) {
+        console.error('Delete error:', err);
         toast.error(err?.data?.message || 'Failed to delete medication');
       }
     }
@@ -125,7 +138,9 @@ const MedicationsPage = () => {
       frequency: scanData.frequency || '',
       time: scanData.time || '',
       startDate: new Date().toISOString().substr(0, 10),
-      endDate: '',
+      endDate: scanData.endDate || '',
+      expiryDate: scanData.expiryDate || '',
+      manufacturer: scanData.manufacturer || '',
       notes: scanData.notes || 'Imported from QR code scan',
       active: true
     });
@@ -220,7 +235,7 @@ const MedicationsPage = () => {
               {activeMedications.length > 0 ? (
                 <Grid container spacing={3}>
                   {activeMedications.map(medication => (
-                    <Grid item xs={12} key={medication.id}>
+                    <Grid item xs={12} key={medication._id}>
                       <Paper 
                         elevation={1}
                         sx={{ 
@@ -278,21 +293,37 @@ const MedicationsPage = () => {
                                   <MedicationExpiryWarning medication={medication} />
                                 </Box>
                               )}
+                              
+                              {medication.manufacturer && (
+                                <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                                  Manufacturer: {medication.manufacturer}
+                                </Typography>
+                              )}
+                              
+                              {medication.expiryDate && (
+                                <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                                  Expiry Date: {format(parseISO(medication.expiryDate), 'MMM d, yyyy')}
+                                </Typography>
+                              )}
                             </Box>
                           </Box>
                           <Box>
+                            <Box sx={{ display: 'flex', gap: 1 }}>
                             <IconButton 
                               onClick={() => openEditForm(medication)}
-                              color="primary"
+                                size="small"
+                                sx={{ color: 'primary.main' }}
                             >
                               <Edit2 size={20} />
                             </IconButton>
                             <IconButton 
-                              onClick={() => handleDelete(medication.id)}
-                              color="error"
+                                onClick={() => handleDelete(medication._id)}
+                                size="small"
+                                sx={{ color: 'error.main' }}
                             >
                               <Trash2 size={20} />
                             </IconButton>
+                            </Box>
                           </Box>
                         </Box>
                       </Paper>
@@ -300,29 +331,22 @@ const MedicationsPage = () => {
                   ))}
                 </Grid>
               ) : (
-                <Paper 
-                  sx={{ 
-                    p: 3, 
-                    textAlign: 'center',
-                    color: 'text.secondary',
-                    borderRadius: 2
-                  }}
-                >
-                  <Typography>No active medications.</Typography>
-                </Paper>
+                <Typography variant="body1" color="text.secondary">
+                  No active medications
+                </Typography>
               )}
             </Box>
 
             {/* Inactive Medications */}
-            {inactiveMedications.length > 0 && (
-              <Box sx={{ mb: 4 }}>
+            <Box sx={{ mt: 6 }}>
                 <Typography variant="h6" sx={{ mb: 2, color: 'text.primary' }}>
                   Inactive Medications
                 </Typography>
                 
+              {inactiveMedications.length > 0 ? (
                 <Grid container spacing={3}>
                   {inactiveMedications.map(medication => (
-                    <Grid item xs={12} key={medication.id}>
+                    <Grid item xs={12} key={medication._id}>
                       <Paper 
                         elevation={1}
                         sx={{ 
@@ -330,8 +354,7 @@ const MedicationsPage = () => {
                           borderRadius: 2,
                           opacity: 0.7,
                           '&:hover': {
-                            opacity: 0.9,
-                            boxShadow: 2
+                            boxShadow: 3
                           }
                         }}
                       >
@@ -382,29 +405,49 @@ const MedicationsPage = () => {
                                   <MedicationExpiryWarning medication={medication} />
                                 </Box>
                               )}
+                              
+                              {medication.manufacturer && (
+                                <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                                  Manufacturer: {medication.manufacturer}
+                                </Typography>
+                              )}
+                              
+                              {medication.expiryDate && (
+                                <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                                  Expiry Date: {format(parseISO(medication.expiryDate), 'MMM d, yyyy')}
+                                </Typography>
+                              )}
                             </Box>
                           </Box>
                           <Box>
+                            <Box sx={{ display: 'flex', gap: 1 }}>
                             <IconButton 
                               onClick={() => openEditForm(medication)}
-                              color="primary"
+                                size="small"
+                                sx={{ color: 'primary.main' }}
                             >
                               <Edit2 size={20} />
                             </IconButton>
                             <IconButton 
-                              onClick={() => handleDelete(medication.id)}
-                              color="error"
+                                onClick={() => handleDelete(medication._id)}
+                                size="small"
+                                sx={{ color: 'error.main' }}
                             >
                               <Trash2 size={20} />
                             </IconButton>
+                            </Box>
                           </Box>
                         </Box>
                       </Paper>
                     </Grid>
                   ))}
                 </Grid>
+              ) : (
+                <Typography variant="body1" color="text.secondary">
+                  No inactive medications
+                </Typography>
+              )}
               </Box>
-            )}
 
             {/* Empty State */}
             {medicationList.length === 0 && (
@@ -532,6 +575,30 @@ const MedicationsPage = () => {
                         value={formData.endDate}
                         onChange={handleChange}
                         InputLabelProps={{ shrink: true }}
+                      />
+                    </Grid>
+
+                    {/* Expiry Date */}
+                    <Grid item xs={6}>
+                      <TextField
+                        fullWidth
+                        label="Expiry Date"
+                        name="expiryDate"
+                        type="date"
+                        InputLabelProps={{ shrink: true }}
+                        value={formData.expiryDate}
+                        onChange={handleChange}
+                      />
+                    </Grid>
+
+                    {/* Manufacturer */}
+                    <Grid item xs={6}>
+                      <TextField
+                        fullWidth
+                        label="Manufacturer"
+                        name="manufacturer"
+                        value={formData.manufacturer}
+                        onChange={handleChange}
                       />
                     </Grid>
 
